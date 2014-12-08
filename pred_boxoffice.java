@@ -86,7 +86,7 @@ public class pred_boxoffice  {
 	    	  //calculate collection
 	    	  float pred_BO = SFmin + (HF/2)*(SFmax-SFmin);
 	    	  //update table
-	    	  String update_predBO = "UPDATE augurdata SET pred_collection = ? WHERE movie_name = ?";
+	    	  String update_predBO = "UPDATE augur_train2 SET pred_collection = ? WHERE movie_name = ?";
 	    	  PreparedStatement ps = conn.prepareStatement(update_predBO);
 	    	  ps.setDouble(1,pred_BO);
 	    	  ps.setString(2, movielist.get(i));
