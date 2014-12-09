@@ -28,6 +28,7 @@ public class pred_boxoffice  {
 	      conn = DriverManager.getConnection(DB_URL, USER, PASS);
 	      System.out.println("Connected database successfully");
 	      stmt = conn.createStatement();
+	      PreparedStatement preparedStatement = null;
 	      //get a list of movies stored in the database
 	      String sql = "SELECT movie_name FROM augur_test2";
 	      ResultSet movies = stmt.executeQuery(sql);
@@ -40,58 +41,118 @@ public class pred_boxoffice  {
 	      }
 	      movies.close();
 	      //get maximum views,max like_dislike,max_collection from database
-	      String getMaxViews = "select MAX( YT_views) from augur_train2";
-	      String getMaxLikes_dislikes = "select MAX(like_dislike) from augur_train2";
-	      String getMaxCollection = "select MAX(collection) from augur_train2";
-	      float MaxViews = stmt.executeQuery(getMaxViews).getFloat(0);
-	      float Maxdelta_likes = stmt.executeQuery(getMaxLikes_dislikes).getFloat(0);
-	      float MaxCollection = stmt.executeQuery(getMaxCollection).getFloat(0);
+	      String getMaxViews = "select MAX( YT_views) as maxviews from augur_train2";
+	      String getMaxLikes_dislikes = "select MAX(like_dislike) as deltalike from augur_train2";
+	      String getMaxCollection = "select MAX(collection) as maxcoll from augur_train2";
+	      float MaxViews = 0;
+	      float Maxdelta_likes = 0;
+	      float MaxCollection = 0;
+	      ResultSet rs;
+	      rs = stmt.executeQuery(getMaxViews);
+	      if (rs.next())
+	      {
+	    	   MaxViews = rs.getFloat("maxviews");
+	    	   System.out.println("MAXVIEWS");
+	      }
+	      //float MaxViews =  129177616;
+	       rs = stmt.executeQuery(getMaxLikes_dislikes);
+	      if (rs.next())
+	      {
+	    	  Maxdelta_likes =  rs.getFloat("deltalike");
+	    	  System.out.println("Maxdelta_likes");
+	      }
+	      //float Maxdelta_likes = 765200;
+	      rs = stmt.executeQuery(getMaxCollection);
+	      if (rs.next())
+	      {
+	    	  MaxCollection =  rs.getFloat("maxcoll");
+	    	  System.out.println("MaxCollection");
+	    	  
+	      }
+	      //float MaxCollection =  331062432;
 	      //for each movie in database
 	      for (int i =0;i<movielist.size();i++)
 	      {
 	    	  //get views
-	    	  String getViews = "select YT_views from augur_test2 where movie_name="+movielist.get(i);
-	    	  float views = stmt.executeQuery(getViews).getFloat(0);
+	    	  String getViews = "select YT_views from augur_test2 where movie_name = ?";
+	    	  preparedStatement = conn.prepareStatement(getViews);
+	    	  preparedStatement.setString(1,movielist.get(i));
+	    	  rs = preparedStatement.executeQuery();
+	    	  float views = 0;
+	    	  if (rs.next())
+	    		  {
+	    		  views= rs.getFloat("YT_views");
+	    		  System.out.println(movielist.get(i)+"VIEWS"+views);
+	    		  }
 	    	  //get delta_likes
-	    	  String getDeltaLike = "select like_dislike from augur_test2 where movie_name="+movielist.get(i);
-	    	  float delta_likes = stmt.executeQuery(getDeltaLike).getFloat(0);
+	    	  String getDeltaLike = "select like_dislike from augur_test2 where movie_name = ?";
+	    	  preparedStatement = conn.prepareStatement(getDeltaLike);
+	    	  preparedStatement.setString(1,movielist.get(i));
+	    	  float delta_likes = 0;
+	    	  rs = preparedStatement.executeQuery();
+	    	  if (rs.next())
+	    	  {
+	    		  delta_likes = rs.getFloat("like_dislike");
+	    		  System.out.println(movielist.get(i)+"like_dislike"+delta_likes);
+	    	  }
 	    	  //calculate hype factor
 	    	  float HF = (views/MaxViews)+(delta_likes/Maxdelta_likes);
 	    	  //get sentiment factor
-	    	  String getSF =  "select var_coll from augur_test2 where movie_name="+movielist.get(i);
-	    	  String SF = stmt.executeQuery(getSF).getString(0);
+	    	  String getSF =  "select var_coll from augur_test2 where movie_name = ?";
+	    	  preparedStatement = conn.prepareStatement(getSF);
+	    	  preparedStatement.setString(1,movielist.get(i));
+	    	  String SF = "";
+	    	  rs = preparedStatement.executeQuery();
+	    	  char trigger = 'X';
+	    	  if (rs.next())
+	    	  {
+	    		  SF = rs.getString("var_coll");
+	    		  trigger = SF.charAt(0);
+	    		  System.out.println(movielist.get(i)+"var_coll "+ SF + "trigger "+trigger);
+	    	  }
 	    	  float SFmin=0,SFmax=0;
 	    	//depending on SF set SFmax,SFmin
-	    	  switch(SF)
+	    	  switch(trigger)
 	    	  {
-	    	  case "A":
+	    	  case 'A':
 	    		  SFmin=60000000;
 	    		  SFmax=MaxCollection;
-	    	  case "B":
+	    		  break;
+	    	  case 'B':
 	    		  SFmin=10000000;
 	    		  SFmax=60000000;
-	    	  case "C":
+	    		  break;
+	    	  case 'C':
 	    		  SFmin=1000000;
 	    		  SFmax=10000000;
-	    	  case "D":
+	    		  break;
+	    	  case 'D':
 	    		  SFmin=300000;
 	    		  SFmax=1000000;
-	    	  case "E":
+	    		  break;
+	    	  case 'E':
 	    		  SFmin=100000;
 	    		  SFmax=300000;
-	    	  case "F":
+	    		  break;
+	    	  case 'F':
 	    		  SFmin=0;
 	    		  SFmax=100000;
+	    		  break;
+    		  default:
+    			  System.out.println("default :: "+trigger);
+    			  SFmin=0;
+    			  SFmax=0;
 	    	  }
 	    	  //calculate collection
 	    	  float pred_BO = SFmin + (HF/2)*(SFmax-SFmin);
 	    	  //update table
-	    	  String update_predBO = "UPDATE augur_train2 SET pred_collection = ? WHERE movie_name = ?";
+	    	  String update_predBO = "UPDATE augur_test2 SET pred_collection = ? WHERE movie_name = ?";
 	    	  PreparedStatement ps = conn.prepareStatement(update_predBO);
 	    	  ps.setDouble(1,pred_BO);
 	    	  ps.setString(2, movielist.get(i));
 	    	  ps.executeUpdate();
-	    	  System.out.println("pred collection updated for "+ movielist.get(i));
+	    	  System.out.println(movielist.get(i)+":::::"+pred_BO);
+	    	  //System.out.println("pred collection updated for "+ movielist.get(i));
 	      }
 	   }catch(SQLException se){
 	      //Handle errors for JDBC
