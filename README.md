@@ -1,6 +1,3 @@
-pred_collection
+BoxOfficePredictor
 ===============
-boxofficepredictor.java consolidated file
-updates the database after calculating predicted collection using the expression.
-usage
-java \<jar\> \<moviename\>
+boxofficepredictor.java is the consolidated file. Updates the database after calculating predicted collection using the expression. usage - java \<jar\> \<moviename\>
